@@ -7,6 +7,7 @@ import (
 	_ "github.com/phayes/hookserve/hookserve"
 	"io/ioutil"
 	"log"
+	"net/url"
 	"os"
 	"os/exec"
 	"path"
@@ -15,36 +16,29 @@ import (
 
 func sPtr(s string) *string { return &s }
 
-func download() {
+func downloadArchive(url *url.URL, dest string) {
+	log.Printf("Downloading: %s\n", url)
+	cmd := exec.Command("curl", "-o", dest, "-O", url.String())
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Run()
+}
+func extractArchive(zipFile, outputDir string) {
+	log.Printf("Extracting...\n")
+	cmd := exec.Command("unzip", zipFile, "-d", outputDir)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Run()
+}
 
-	client := github.NewClient(nil)
-	owner := "maddyonline"
-	repo := "fun-with-algo"
-	opt := &github.RepositoryContentGetOptions{"master"}
-
+func doIt(client *github.Client, owner, repo string, opt *github.RepositoryContentGetOptions) {
 	url, _, err := client.Repositories.GetArchiveLink(owner, repo, github.Zipball, opt)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	downloadArchive := func() {
-		log.Printf("Downloading: %s\n", url)
-		cmd := exec.Command("curl", "-o", "abc.zip", "-O", url.String())
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		cmd.Run()
-	}
-	extractArchive := func() {
-		log.Printf("Extracting")
-		cmd := exec.Command("unzip", "abc.zip", "-d", "unique_dir/")
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		cmd.Run()
-	}
-
-	downloadArchive()
+	downloadArchive(url, "abc.zip")
 	os.Mkdir("unique_dir", 0777)
-	extractArchive()
+	extractArchive("abc.zip", "unique_dir")
 	dirs, err := ioutil.ReadDir("unique_dir")
 	if err != nil {
 		log.Fatal(err)
@@ -73,5 +67,8 @@ func downloadFile(client *github.Client, owner, repo, filepath string, opt *gith
 }
 
 func main() {
-	download()
+	client := github.NewClient(nil)
+	opt := &github.RepositoryContentGetOptions{"master"}
+	doIt(client, "maddyonline", "fun-with-algo", opt)
+	doIt(client, "maddyonline", "epibook.github.io", opt)
 }
