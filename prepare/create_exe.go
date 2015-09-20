@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"strings"
@@ -91,12 +92,23 @@ func mySolution(baseDir, problem, mySoln string) string {
 
 func createExe(problemsRepo, problem, mySolnRepo, mySolnDir string) {
 	destDir := "work_dir"
+	binDir, _ := filepath.Abs(destDir)
+	runCmd := "docker run --rm -v %s:/app -w /app ubuntu ./runtest ./gen ./my-soln ./primary-soln"
 	os.Mkdir(destDir, 0777)
 	c1 := dockerCmd(primarySoln(problemsRepo, problem), "primary-soln", destDir)
 	c2 := dockerCmd(primaryGen(problemsRepo, problem), "gen", destDir)
 	c3 := dockerCmd(primaryRunner(problemsRepo, problem), "runtest", destDir)
 	c4 := dockerCmd(mySolution(mySolnRepo, problem, mySolnDir), "my-soln", destDir)
-	script := fmt.Sprintf("%s\n%s\n%s\n%s\n", c1, c2, c3, c4)
+	c5 := fmt.Sprintf(runCmd, binDir)
+
+	script := fmt.Sprintf("%s\n%s\n%s\n%s\n%s\n", c1, c2, c3, c4, c5)
 	ioutil.WriteFile("generated_script.sh", []byte(script), 0777)
 	fmt.Println(script)
+
+	exec.Command("bash", "-c", c1).Run()
+	exec.Command("bash", "-c", c2).Run()
+	exec.Command("bash", "-c", c3).Run()
+	exec.Command("bash", "-c", c4).Run()
+	finalOutput, _ := exec.Command("bash", "-c", c5).CombinedOutput()
+	fmt.Println(string(finalOutput))
 }
