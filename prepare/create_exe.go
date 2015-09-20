@@ -32,8 +32,9 @@ func cwd() string {
 	return dir
 }
 
-func dockerCmd(scriptPath, outFile string) string {
-	destDir := cwd()
+func dockerCmd(scriptPath, outFile, destDir string) string {
+	//fmt.Println(scriptPath)
+	destDir = path.Join(cwd(), destDir)
 	fullPath, err := filepath.Abs(scriptPath)
 	tmpl, err := template.New("test").Parse(TEMPL)
 	if err != nil {
@@ -83,9 +84,18 @@ func primaryRunner(baseDir, problem string) string {
 	return fmt.Sprintf(s, baseDir)
 }
 
+func mySolution(baseDir, problem, mySoln string) string {
+	s := "%s/my-solutions/%s/%s"
+	return fmt.Sprintf(s, baseDir, problem, mySoln)
+}
+
 func main() {
-	fmt.Println(dockerCmd(primarySoln(os.Args[1], os.Args[2]), "primary-soln"))
-	fmt.Println(dockerCmd(primaryGen(os.Args[1], os.Args[2]), "gen"))
-	fmt.Println(dockerCmd(primaryRunner(os.Args[1], os.Args[2]), "runtest"))
+	problemsRepo, problem, mySolnRepo, mySolnDir := os.Args[1], os.Args[2], os.Args[3], os.Args[4]
+	destDir := "work_dir"
+	os.Mkdir(destDir, 0777)
+	fmt.Println(dockerCmd(primarySoln(problemsRepo, problem), "primary-soln", destDir))
+	fmt.Println(dockerCmd(primaryGen(problemsRepo, problem), "gen", destDir))
+	fmt.Println(dockerCmd(primaryRunner(problemsRepo, problem), "runtest", destDir))
+	fmt.Println(dockerCmd(mySolution(mySolnRepo, problem, mySolnDir), "my-soln", destDir))
 	//dockerCmd(os.Args[1])
 }
