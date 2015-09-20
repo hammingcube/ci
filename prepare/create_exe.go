@@ -89,13 +89,14 @@ func mySolution(baseDir, problem, mySoln string) string {
 	return fmt.Sprintf(s, baseDir, problem, mySoln)
 }
 
-func main() {
-	problemsRepo, problem, mySolnRepo, mySolnDir := os.Args[1], os.Args[2], os.Args[3], os.Args[4]
+func createExe(problemsRepo, problem, mySolnRepo, mySolnDir string) {
 	destDir := "work_dir"
 	os.Mkdir(destDir, 0777)
-	fmt.Println(dockerCmd(primarySoln(problemsRepo, problem), "primary-soln", destDir))
-	fmt.Println(dockerCmd(primaryGen(problemsRepo, problem), "gen", destDir))
-	fmt.Println(dockerCmd(primaryRunner(problemsRepo, problem), "runtest", destDir))
-	fmt.Println(dockerCmd(mySolution(mySolnRepo, problem, mySolnDir), "my-soln", destDir))
-	//dockerCmd(os.Args[1])
+	c1 := dockerCmd(primarySoln(problemsRepo, problem), "primary-soln", destDir)
+	c2 := dockerCmd(primaryGen(problemsRepo, problem), "gen", destDir)
+	c3 := dockerCmd(primaryRunner(problemsRepo, problem), "runtest", destDir)
+	c4 := dockerCmd(mySolution(mySolnRepo, problem, mySolnDir), "my-soln", destDir)
+	script := fmt.Sprintf("%s\n%s\n%s\n%s\n", c1, c2, c3, c4)
+	ioutil.WriteFile("generated_script.sh", []byte(script), 0777)
+	fmt.Println(script)
 }

@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	_ "fmt"
+	"fmt"
 	"github.com/google/go-github/github"
 	_ "github.com/phayes/hookserve/hookserve"
 	"io/ioutil"
@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"strings"
 	_ "time"
 )
 
@@ -31,7 +32,7 @@ func extractArchive(zipFile, outputDir string) {
 	cmd.Run()
 }
 
-func doIt(client *github.Client, owner, repo string, opt *github.RepositoryContentGetOptions) {
+func doIt(client *github.Client, owner, repo string, opt *github.RepositoryContentGetOptions) (string, string, string) {
 	url, _, err := client.Repositories.GetArchiveLink(owner, repo, github.Zipball, opt)
 	if err != nil {
 		log.Fatal(err)
@@ -46,9 +47,17 @@ func doIt(client *github.Client, owner, repo string, opt *github.RepositoryConte
 	log.Printf("Found following directories:\n%v\n", dirs[0].Name())
 	filename := path.Join("unique_dir", dirs[0].Name(), "runtests.json")
 	data, err := ioutil.ReadFile(filename)
-	var v map[string]interface{}
-	json.Unmarshal(data, &v)
-	log.Printf("Read:%s\n", v)
+	var runTestsConfig map[string]string
+	var problem, mySolnDir string
+	json.Unmarshal(data, &runTestsConfig)
+	log.Printf("Read:%s\n", runTestsConfig)
+	arr := strings.Split(runTestsConfig["runtests"], ",")
+	if len(arr) > 1 {
+		problem = arr[0]
+		mySolnDir = arr[1]
+	}
+	fmt.Printf("problem: %s, mysolnDir: %s\n", problem, mySolnDir)
+	return path.Join("unique_dir", dirs[0].Name()), problem, mySolnDir
 }
 
 func downloadFile(client *github.Client, owner, repo, filepath string, opt *github.RepositoryContentGetOptions) {
@@ -69,6 +78,9 @@ func downloadFile(client *github.Client, owner, repo, filepath string, opt *gith
 func main() {
 	client := github.NewClient(nil)
 	opt := &github.RepositoryContentGetOptions{"master"}
-	doIt(client, "maddyonline", "fun-with-algo", opt)
-	doIt(client, "maddyonline", "epibook.github.io", opt)
+	mySolnRepo, problem, mySolnDir := doIt(client, "maddyonline", "fun-with-algo", opt)
+	problemsRepo, _, _ := doIt(client, "maddyonline", "epibook.github.io", opt)
+	fmt.Println("In main:")
+	fmt.Println(problemsRepo, problem, mySolnRepo, mySolnDir)
+	createExe(problemsRepo, problem, mySolnRepo, mySolnDir)
 }
