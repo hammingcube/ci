@@ -1,29 +1,26 @@
 package main
 
 import (
+	"encoding/json"
 	_ "fmt"
 	"github.com/google/go-github/github"
 	_ "github.com/phayes/hookserve/hookserve"
-	"golang.org/x/oauth2"
 	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
+	"path"
 	_ "time"
 )
 
 func sPtr(s string) *string { return &s }
 
 func download() {
-	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: os.Getenv("GH_TOKEN")},
-	)
-	tc := oauth2.NewClient(oauth2.NoContext, ts)
-	client := github.NewClient(tc)
+
+	client := github.NewClient(nil)
 	owner := "maddyonline"
 	repo := "fun-with-algo"
-	filepath := "testit/v1"
-	opt := &github.RepositoryContentGetOptions{"b04c4c9ba6d9548df666913e6b2f6a164ad03cfe"}
+	opt := &github.RepositoryContentGetOptions{"master"}
 
 	url, _, err := client.Repositories.GetArchiveLink(owner, repo, github.Zipball, opt)
 	if err != nil {
@@ -48,31 +45,33 @@ func download() {
 	downloadArchive()
 	os.Mkdir("unique_dir", 0777)
 	extractArchive()
-
-	name, err := exec.Command("ls", "unique_dir").CombinedOutput()
+	dirs, err := ioutil.ReadDir("unique_dir")
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Printf("Found the name: %s\n", name)
+	log.Printf("Found following directories:\n%v\n", dirs[0].Name())
+	filename := path.Join("unique_dir", dirs[0].Name(), "runtests.json")
+	data, err := ioutil.ReadFile(filename)
+	var v map[string]interface{}
+	json.Unmarshal(data, &v)
+	log.Printf("Read:%s\n", v)
+}
 
-	dl := func() {
-		r, err := client.Repositories.DownloadContents(owner, repo, filepath, opt)
-		if err != nil {
-			log.Fatal(err)
-		}
-		d1, err := ioutil.ReadAll(r)
-		if err != nil {
-			log.Fatal(err)
-		}
-		err = ioutil.WriteFile("dl_data", d1, 0644)
-		if err != nil {
-			log.Fatal(err)
-		}
+func downloadFile(client *github.Client, owner, repo, filepath string, opt *github.RepositoryContentGetOptions) {
+	r, err := client.Repositories.DownloadContents(owner, repo, filepath, opt)
+	if err != nil {
+		log.Fatal(err)
 	}
-	dl()
+	d1, err := ioutil.ReadAll(r)
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = ioutil.WriteFile("dl_data", d1, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func main() {
-	log.Println(os.Getenv("GH_TOKEN"))
 	download()
 }
