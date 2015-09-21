@@ -1,4 +1,4 @@
-package main
+package prepare
 
 import (
 	"encoding/json"
@@ -77,7 +77,7 @@ func downloadFile(client *github.Client, owner, repo, filepath string, opt *gith
 	}
 }
 
-func main() {
+func Main() []byte {
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	randDir := fmt.Sprintf("rand_dir_%d", r.Uint32())
 	fmt.Printf("Using %s as working directory.\n", randDir)
@@ -92,5 +92,5 @@ func main() {
 	problemsRepo, _, _ := doIt(client, "maddyonline", "epibook.github.io", opt)
 	fmt.Println("In main:")
 	fmt.Println(problemsRepo, problem, mySolnRepo, mySolnDir)
-	createExe(problemsRepo, problem, mySolnRepo, mySolnDir)
+	return createExe(problemsRepo, problem, mySolnRepo, mySolnDir)
 }

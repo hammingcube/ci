@@ -1,4 +1,4 @@
-package main
+package prepare
 
 import (
 	"bytes"
@@ -90,7 +90,7 @@ func mySolution(baseDir, problem, mySoln string) string {
 	return fmt.Sprintf(s, baseDir, problem, mySoln)
 }
 
-func createExe(problemsRepo, problem, mySolnRepo, mySolnDir string) {
+func createExe(problemsRepo, problem, mySolnRepo, mySolnDir string) []byte {
 	destDir := "work_dir"
 	binDir, _ := filepath.Abs(destDir)
 	runCmd := "docker run --rm -v %s:/app -w /app ubuntu ./runtest ./gen ./my-soln ./primary-soln"
@@ -112,5 +112,9 @@ func createExe(problemsRepo, problem, mySolnRepo, mySolnDir string) {
 	finalOutput, _ := exec.Command("bash", "-c", c5).CombinedOutput()
 	fmt.Println(string(finalOutput))
 	fmt.Printf("Btw, we are in %s\n", cwd())
-
+	jsonBytes, err := ioutil.ReadFile(path.Join("work_dir", "status.json"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	return jsonBytes
 }

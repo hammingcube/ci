@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/google/go-github/github"
+	"github.com/maddyonline/ci/prepare"
 	"github.com/phayes/hookserve/hookserve"
 	"github.com/streamrail/concurrent-map"
 	"golang.org/x/oauth2"
@@ -23,7 +25,7 @@ func wait() {
 			fmt.Println("Tick at", t)
 		}
 	}()
-	time.Sleep(time.Second * 180)
+	time.Sleep(time.Second * 20)
 	ticker.Stop()
 	fmt.Println("Ticker stopped")
 }
@@ -55,10 +57,18 @@ func build(commit *hookserve.Event) {
 		fmt.Println(err)
 	}
 	fmt.Println(repoStatus)
+	jsonBytes := prepare.Main()
+	var statusVal map[string]string
+	json.Unmarshal(jsonBytes, &statusVal)
+	status := "success"
+	if statusVal != nil {
+		fmt.Println("Got the following status: ", statusVal["status"])
+		status = statusVal["status"]
+	}
 	wait()
 	repoStatus, _, err = client.Repositories.CreateStatus(commit.Owner, commit.Repo, commit.Commit,
 		&github.RepoStatus{
-			State:       sPtr("success"),
+			State:       sPtr(status),
 			TargetURL:   sPtr("https://www.google.com"),
 			Description: sPtr("The build succeeded"),
 			Context:     sPtr("ci/builds"),
