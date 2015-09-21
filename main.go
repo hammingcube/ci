@@ -15,6 +15,13 @@ import (
 	"time"
 )
 
+const (
+	PENDING = "pending"
+	SUCCESS = "success"
+	ERROR   = "error"
+	FAILURE = "failure"
+)
+
 var mymap cmap.ConcurrentMap
 
 func sPtr(s string) *string { return &s }
@@ -40,12 +47,15 @@ func build(commit *hookserve.Event) {
 	}
 	defer mymap.Remove(key)
 	fmt.Println("Building: ", commit.Owner, commit.Repo, commit.Branch, commit.Commit)
+
+	currentStatus := PENDING
+
 	buildURL := fmt.Sprintf("https://builds.firebaseio.com/%s/%s/%s", commit.Owner, commit.Repo, commit.Branch)
 	f := firego.New(buildURL)
 	f.Auth(os.Getenv("FIREBASE_SECRET"))
 	v := map[string]string{
 		"commit": commit.Commit,
-		"status": "pending",
+		"status": currentStatus,
 	}
 	pushedFirego, err := f.Push(v)
 	if err != nil {
@@ -60,8 +70,8 @@ func build(commit *hookserve.Event) {
 	client := github.NewClient(tc)
 	repoStatus, _, err := client.Repositories.CreateStatus(commit.Owner, commit.Repo, commit.Commit,
 		&github.RepoStatus{
-			State:       sPtr("pending"),
-			TargetURL:   sPtr("https://www.google.com"),
+			State:       sPtr(currentStatus),
+			TargetURL:   sPtr(buildURL),
 			Description: sPtr("The build started"),
 			Context:     sPtr("ci/builds"),
 		})
@@ -69,21 +79,19 @@ func build(commit *hookserve.Event) {
 	if err != nil {
 		fmt.Println(err)
 	}
-	fmt.Println(repoStatus)
 	jsonBytes := prepare.Main(commit.Owner, commit.Repo)
 	var statusVal map[string]string
 	json.Unmarshal(jsonBytes, &statusVal)
-	status := "success"
 	if statusVal != nil {
 		fmt.Println("Got the following status: ", statusVal["status"])
-		status = statusVal["status"]
+		currentStatus = statusVal["status"]
 	}
 	wait()
-	pushedFirego.Update(map[string]string{"status": status})
+	pushedFirego.Update(map[string]string{"status": currentStatus})
 	repoStatus, _, err = client.Repositories.CreateStatus(commit.Owner, commit.Repo, commit.Commit,
 		&github.RepoStatus{
-			State:       sPtr(status),
-			TargetURL:   sPtr("https://www.google.com"),
+			State:       sPtr(currentStatus),
+			TargetURL:   sPtr(buildURL),
 			Description: sPtr("The build succeeded"),
 			Context:     sPtr("ci/builds"),
 		})
