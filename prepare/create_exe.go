@@ -111,4 +111,6 @@ func createExe(problemsRepo, problem, mySolnRepo, mySolnDir string) {
 	exec.Command("bash", "-c", c4).Run()
 	finalOutput, _ := exec.Command("bash", "-c", c5).CombinedOutput()
 	fmt.Println(string(finalOutput))
+	fmt.Printf("Btw, we are in %s\n", cwd())
+
 }

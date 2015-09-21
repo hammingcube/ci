@@ -7,11 +7,13 @@ import (
 	_ "github.com/phayes/hookserve/hookserve"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net/url"
 	"os"
 	"os/exec"
 	"path"
 	"strings"
+	"time"
 	_ "time"
 )
 
@@ -76,6 +78,14 @@ func downloadFile(client *github.Client, owner, repo, filepath string, opt *gith
 }
 
 func main() {
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	randDir := fmt.Sprintf("rand_dir_%d", r.Uint32())
+	fmt.Printf("Using %s as working directory.\n", randDir)
+	os.Mkdir(randDir, 0777)
+	err := os.Chdir(randDir)
+	if err != nil {
+		log.Fatal(err)
+	}
 	client := github.NewClient(nil)
 	opt := &github.RepositoryContentGetOptions{"master"}
 	mySolnRepo, problem, mySolnDir := doIt(client, "maddyonline", "fun-with-algo", opt)
