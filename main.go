@@ -50,11 +50,10 @@ func build(commit *hookserve.Event) {
 
 	currentStatus := PENDING
 
-	buildURL := fmt.Sprintf("https://builds.firebaseio.com/%s/%s/%s", commit.Owner, commit.Repo, commit.Branch)
+	buildURL := fmt.Sprintf("https://builds.firebaseio.com/%s/%s/%s/%s", commit.Owner, commit.Repo, commit.Branch, commit.Commit)
 	f := firego.New(buildURL)
 	f.Auth(os.Getenv("FIREBASE_SECRET"))
 	v := map[string]string{
-		"commit": commit.Commit,
 		"status": currentStatus,
 	}
 	pushedFirego, err := f.Push(v)
