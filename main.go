@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/CloudCom/firego"
 	"github.com/google/go-github/github"
 	"github.com/maddyonline/ci/prepare"
 	"github.com/phayes/hookserve/hookserve"
@@ -39,6 +40,18 @@ func build(commit *hookserve.Event) {
 	}
 	defer mymap.Remove(key)
 	fmt.Println("Building: ", commit.Owner, commit.Repo, commit.Branch, commit.Commit)
+	buildURL := fmt.Sprintf("https://builds.firebaseio.com/%s/%s/%s", commit.Owner, commit.Repo, commit.Branch)
+	f := firego.New(buildURL)
+	f.Auth(os.Getenv("FIREBASE_SECRET"))
+	v := map[string]string{
+		"commit": commit.Commit,
+		"status": "pending",
+	}
+	pushedFirego, err := f.Push(v)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("%s\n", pushedFirego)
 
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: os.Getenv("GH_TOKEN")},
@@ -66,6 +79,7 @@ func build(commit *hookserve.Event) {
 		status = statusVal["status"]
 	}
 	wait()
+	pushedFirego.Update(map[string]string{"status": status})
 	repoStatus, _, err = client.Repositories.CreateStatus(commit.Owner, commit.Repo, commit.Commit,
 		&github.RepoStatus{
 			State:       sPtr(status),
