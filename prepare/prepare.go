@@ -77,7 +77,7 @@ func downloadFile(client *github.Client, owner, repo, filepath string, opt *gith
 	}
 }
 
-func Main() []byte {
+func Main(owner, repo string) []byte {
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	randDir := fmt.Sprintf("rand_dir_%d", r.Uint32())
 	fmt.Printf("Using %s as working directory.\n", randDir)
@@ -88,7 +88,7 @@ func Main() []byte {
 	}
 	client := github.NewClient(nil)
 	opt := &github.RepositoryContentGetOptions{"master"}
-	mySolnRepo, problem, mySolnDir := doIt(client, "maddyonline", "fun-with-algo", opt)
+	mySolnRepo, problem, mySolnDir := doIt(client, owner, repo, opt)
 	problemsRepo, _, _ := doIt(client, "maddyonline", "epibook.github.io", opt)
 	fmt.Println("In main:")
 	fmt.Println(problemsRepo, problem, mySolnRepo, mySolnDir)

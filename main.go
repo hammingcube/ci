@@ -25,7 +25,7 @@ func wait() {
 			fmt.Println("Tick at", t)
 		}
 	}()
-	time.Sleep(time.Second * 20)
+	time.Sleep(time.Second * 15)
 	ticker.Stop()
 	fmt.Println("Ticker stopped")
 }
@@ -57,7 +57,7 @@ func build(commit *hookserve.Event) {
 		fmt.Println(err)
 	}
 	fmt.Println(repoStatus)
-	jsonBytes := prepare.Main()
+	jsonBytes := prepare.Main(commit.Owner, commit.Repo)
 	var statusVal map[string]string
 	json.Unmarshal(jsonBytes, &statusVal)
 	status := "success"
